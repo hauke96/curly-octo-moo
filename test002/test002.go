@@ -78,10 +78,9 @@ func main() {
 	}
 
 	// start update routine
-	// TODO Channels benutzen
 	go update(&spielstand, label)
 
-	layout.Put(label, 20, 20)
+	layout.Put(label, 300, 70)
 	layout.Put(menubar, 0, 0)
 
 	window.Add(layout)
@@ -97,17 +96,14 @@ func setImage(bild *gtk.Image, state int) {
 
 func update(stand *spielstand, label *gtk.Label) {
 	for true {
-		//		fmt.Println(len(stand.spielfeld), " - ", len(stand.spielfeld[0]))
-		time.Sleep(time.Second)
-		//TODO alle häuser durchgehen
-		//		stand.money += (stand.spielHaus.state / 5)
+		time.Sleep(3 * time.Second)
 		stand.money += stand.amountUpgrades
 		labelUpdate(label, stand)
 	}
 }
 
 func labelUpdate(label *gtk.Label, spielstand *spielstand) {
-	label.SetText("Geld: " + strconv.Itoa(spielstand.money))
+	label.SetText("Geld: " + strconv.Itoa(spielstand.money) + "\nUpgrades: " + strconv.Itoa(spielstand.amountUpgrades))
 }
 
 func createMenu() *gtk.MenuBar {
