@@ -29,6 +29,7 @@ func main() {
 	window.SetSizeRequest(800, 600)
 
 	layout := gtk.NewLayout(nil, nil)
+	layout.ModifyBG(gtk.STATE_NORMAL, gdk.NewColorRGB(200, 200, 200))
 
 	menubar := createMenu()
 
@@ -82,7 +83,7 @@ func main() {
 			// diese event box dafür.
 			eventBox.Connect("button-press-event", weiter)
 			eventBox.SetEvents(int(gdk.BUTTON_PRESS_MASK))
-			layout.Put(eventBox, 100+i*96, 100+j*96)
+			layout.Put(eventBox, 100+i*100, 100+j*100)
 		}
 	}
 
