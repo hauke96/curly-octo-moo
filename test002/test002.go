@@ -1,6 +1,7 @@
 package main
 
 import (
+	//	"fmt"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"
@@ -11,12 +12,12 @@ import (
 )
 
 type haus struct {
-	x, y, state int
+	state int
 }
 
 type spielstand struct {
-	money int
-	haus1 haus
+	money, amountUpgrades int
+	spielfeld             [5][5]haus
 }
 
 func main() {
@@ -31,55 +32,56 @@ func main() {
 
 	menubar := createMenu()
 
-	button := gtk.NewButtonWithLabel("Weiter")
-
-	haus1 := haus{x: 2, y: 3, state: 0}
-
-	spielstand := spielstand{money: 10, haus1: haus1}
+	spielstand := spielstand{money: 10, spielfeld: [5][5]haus{}}
 
 	label := gtk.NewLabel("")
 	labelUpdate(label, &spielstand)
+
+	for i := 0; i < len(spielstand.spielfeld); i++ {
+		for j := 0; j < len(spielstand.spielfeld[0]); j++ {
+			spielHaus := haus{state: 0}
+			spielstand.spielfeld[i][j] = spielHaus
+
+			bild := gtk.NewImage()
+			setImage(bild, spielHaus.state)
+
+			// lambda für die weiterschaltung
+			// Erhöhe den state nur wenn es kein upgrade gibt oder wenn wenn wir genug geld haben.
+			// Und nur bei letzterem kaufe das upgrade.
+			weiter := func(ctx *glib.CallbackContext) {
+				if spielHaus.state < 6*5 {
+					if (spielHaus.state+1)%5 != 0 {
+						spielHaus.state += 1
+					} else {
+						if spielstand.money > 9 {
+							spielHaus.state += 1
+							setImage(bild, spielHaus.state/5)
+							spielstand.money -= 10
+							spielstand.amountUpgrades++
+						}
+					}
+				}
+
+				labelUpdate(label, &spielstand)
+			}
+
+			// Ein bild kann ohne weiteres keine events, daher braucht man eine
+			// EventBox drum rum um events zu haben
+			eventBox := gtk.NewEventBox()
+			eventBox.Add(bild)
+			// das event kann nicht direkt auf das image gesetzt werden, deswegen
+			// diese event box dafür.
+			eventBox.Connect("button-press-event", weiter)
+			eventBox.SetEvents(int(gdk.BUTTON_PRESS_MASK))
+			layout.Put(eventBox, 100+i*96, 100+j*96)
+		}
+	}
 
 	// start update routine
 	// TODO Channels benutzen
 	go update(&spielstand, label)
 
-	bild := gtk.NewImage()
-	setImage(bild, spielstand.haus1.state)
-
-	// lambda für die weiterschaltung
-	// Erhöhe den state nur wenn es kein upgrade gibt oder wenn wenn wir genug geld haben.
-	// Und nur bei letzterem kaufe das upgrade.
-	weiter := func(ctx *glib.CallbackContext) {
-		if spielstand.haus1.state < 6*5 {
-			if (spielstand.haus1.state+1)%5 != 0 {
-				spielstand.haus1.state += 1
-			} else {
-				if spielstand.money > 9 {
-					spielstand.haus1.state += 1
-					setImage(bild, spielstand.haus1.state/5)
-					spielstand.money -= 10
-				}
-			}
-		}
-
-		labelUpdate(label, &spielstand)
-	}
-
-	// Ein bild kann ohne weiteres keine events, daher braucht man eine
-	// EventBox drum rum um events zu haben
-	eventBox := gtk.NewEventBox()
-	eventBox.Add(bild)
-	// das event kann nicht direkt auf das image gesetzt werden, deswegen
-	// diese event box dafür.
-	eventBox.Connect("button-press-event", weiter)
-	eventBox.SetEvents(int(gdk.BUTTON_PRESS_MASK))
-	button.Connect("button-press-event", weiter)
-	button.SetEvents(int(gdk.BUTTON_PRESS_MASK))
-
-	layout.Put(button, 50, 100)
-	layout.Put(label, 50, 60)
-	layout.Put(eventBox, 200, 100)
+	layout.Put(label, 20, 20)
 	layout.Put(menubar, 0, 0)
 
 	window.Add(layout)
@@ -95,14 +97,17 @@ func setImage(bild *gtk.Image, state int) {
 
 func update(stand *spielstand, label *gtk.Label) {
 	for true {
+		//		fmt.Println(len(stand.spielfeld), " - ", len(stand.spielfeld[0]))
 		time.Sleep(time.Second)
-		stand.money += (stand.haus1.state / 5)
+		//TODO alle häuser durchgehen
+		//		stand.money += (stand.spielHaus.state / 5)
+		stand.money += stand.amountUpgrades
 		labelUpdate(label, stand)
 	}
 }
 
 func labelUpdate(label *gtk.Label, spielstand *spielstand) {
-	label.SetText(strconv.Itoa(spielstand.money) + "\n" + strconv.Itoa(spielstand.haus1.state))
+	label.SetText("Geld: " + strconv.Itoa(spielstand.money))
 }
 
 func createMenu() *gtk.MenuBar {
