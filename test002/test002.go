@@ -17,7 +17,7 @@ type haus struct {
 
 type spielstand struct {
 	money, amountUpgrades int
-	spielfeld             [5][5]haus
+	spielfeld             [5][5]*haus
 }
 
 func main() {
@@ -32,32 +32,41 @@ func main() {
 
 	menubar := createMenu()
 
-	spielstand := spielstand{money: 10, spielfeld: [5][5]haus{}}
+	spielstand := spielstand{money: 10, spielfeld: [5][5]*haus{}, amountUpgrades: 0}
 
 	label := gtk.NewLabel("")
 	labelUpdate(label, &spielstand)
 
 	for i := 0; i < len(spielstand.spielfeld); i++ {
 		for j := 0; j < len(spielstand.spielfeld[0]); j++ {
-			spielHaus := haus{state: 0}
-			spielstand.spielfeld[i][j] = spielHaus
+			spielHaus := haus{state: -1}
+			spielstand.spielfeld[i][j] = &spielHaus
 
 			bild := gtk.NewImage()
+			if i == 2 && j == 3 {
+				spielHaus.state = 0
+			}
 			setImage(bild, spielHaus.state)
 
 			// lambda für die weiterschaltung
 			// Erhöhe den state nur wenn es kein upgrade gibt oder wenn wenn wir genug geld haben.
 			// Und nur bei letzterem kaufe das upgrade.
 			weiter := func(ctx *glib.CallbackContext) {
-				if spielHaus.state < 6*5 {
-					if (spielHaus.state+1)%5 != 0 {
-						spielHaus.state += 1
-					} else {
-						if spielstand.money > 9 {
+				if spielHaus.state == -1 && spielstand.amountUpgrades != 0 && spielstand.money >= spielstand.amountUpgrades*10 {
+					spielHaus.state = 0
+					setImage(bild, 0)
+					spielstand.money -= spielstand.amountUpgrades * 10
+				} else {
+					if spielHaus.state < 6*5 && spielHaus.state != -1 {
+						if (spielHaus.state+1)%5 != 0 {
 							spielHaus.state += 1
-							setImage(bild, spielHaus.state/5)
-							spielstand.money -= 10
-							spielstand.amountUpgrades++
+						} else {
+							if spielstand.money > 9 {
+								spielHaus.state += 1
+								setImage(bild, spielHaus.state/5)
+								spielstand.money -= 10
+								spielstand.amountUpgrades++
+							}
 						}
 					}
 				}
